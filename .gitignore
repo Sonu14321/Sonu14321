@@ -1,0 +1,60 @@
+# ── Python ───────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# ── Virtual environments ─────────────────
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# ── Secrets — NEVER commit these ─────────
+# Google OAuth credentials: keep the real file local.
+# client_secret.example.json shows the shape and is the only one committed.
+client_secret.json
+client_secret_*.json
+youtube_token.json
+youtube_token.pickle
+.env
+settings.json
+settings.json.tmp
+*.pickle
+*.pkl
+
+# ── Downloaded fonts (fetched from Google Fonts on first run) ──
+assets/fonts/
+
+# ── Generated output — large files ───────
+output/
+output/images/
+*.mp4
+*.mp3
+*.wav
+*.jpg
+*.jpeg
+*.png
+# allow docs screenshots
+!docs/screenshots/*.png
+
+# ── OS junk ──────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE ───────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Logs ─────────────────────────────────
+*.log

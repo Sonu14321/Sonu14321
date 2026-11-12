@@ -1,0 +1,360 @@
+import os
+
+# ==========================================
+# KidCraft-AI — YouTube Shorts Configuration
+# ==========================================
+
+# Channel & Branding Settings
+CHANNEL_NAME = "KidCraft-AI"
+TARGET_NICHE = "toddler_learning_nursery_rhymes_and_counting"
+
+# Video Dimension Settings for Vertical 9:16 Shorts
+VIDEO_WIDTH = 1080
+VIDEO_HEIGHT = 1920
+ASPECT_RATIO = "9:16"
+MAX_DURATION_SECONDS = 59  # Keeps videos strictly under 1 minute for YouTube Shorts
+
+# Publishing & Daily Output Frequency
+VIDEOS_PER_DAY = 3
+
+# YouTube Compliance & Metadata Settings (COPPA Regulations)
+MADE_FOR_KIDS = True
+DEFAULT_CATEGORY_ID = "1"  # Film & Animation / Education
+DEFAULT_TAGS = [
+    "shorts",
+    "nurseryrhymes",
+    "toddlerlearning",
+    "kids",
+    "kidcraftai",
+    "colors",
+    "counting"
+]
+
+# AI Model Configuration (Free Tier Google Gemini API)
+AI_MODEL_NAME = "gemini-2.5-flash"
+TEMPERATURE = 0.7
+
+ROOT_DIR      = os.path.dirname(os.path.abspath(__file__))
+ENV_PATH      = os.path.join(ROOT_DIR, ".env")
+SETTINGS_PATH = os.path.join(ROOT_DIR, "settings.json")
+
+
+def _load_env(path: str = ENV_PATH) -> None:
+    """Minimal .env reader (no extra dependency). Real env vars win."""
+    if not os.path.exists(path):
+        return
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+
+def save_env(values: dict, path: str = ENV_PATH) -> None:
+    """Update KEY=value pairs in .env, keeping comments and unrelated keys."""
+    lines = []
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    remaining = dict(values)
+    for i, line in enumerate(lines):
+        k = line.split("=", 1)[0].strip()
+        if "=" in line and not line.lstrip().startswith("#") and k in remaining:
+            lines[i] = f"{k}={remaining.pop(k)}"
+    lines += [f"{k}={v}" for k, v in remaining.items()]
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+
+
+_load_env()
+
+# ─────────────────────────────────────────
+#  API Keys  (all free-tier — only Gemini is recommended; the rest are optional)
+# ─────────────────────────────────────────
+GEMINI_API_KEY     = os.getenv("GEMINI_API_KEY",     "")   # aistudio.google.com/apikey
+PEXELS_API_KEY     = os.getenv("PEXELS_API_KEY",     "")   # pexels.com/api
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")   # optional, unused by default
+
+# Optional free keys — each one unlocks an extra provider
+PIXABAY_API_KEY    = os.getenv("PIXABAY_API_KEY",    "")   # pixabay.com/api/docs — more stock images
+GROQ_API_KEY       = os.getenv("GROQ_API_KEY",       "")   # console.groq.com — fast LLM fallback
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")   # openrouter.ai — free LLM fallback
+YOUTUBE_API_KEY    = os.getenv("YOUTUBE_API_KEY",    "")   # console.cloud.google.com — channel stats
+YOUTUBE_CHANNEL_ID = os.getenv("YOUTUBE_CHANNEL_ID", "")   # UC… id or @handle
+
+# Settings the GUI stores in .env rather than in this file
+ENV_KEYS = [
+    "GEMINI_API_KEY", "PEXELS_API_KEY", "PIXABAY_API_KEY", "GROQ_API_KEY",
+    "OPENROUTER_API_KEY", "YOUTUBE_API_KEY", "YOUTUBE_CHANNEL_ID",
+]
+
+# ─────────────────────────────────────────
+#  Free API stack  (keyless — work out of the box)
+# ─────────────────────────────────────────
+# Ground every script in real facts from Wikipedia + arXiv, and cite them
+FACT_GROUNDING = True
+
+# When Gemini has no key or runs out of quota: Groq → OpenRouter → Pollinations
+# (Pollinations is keyless, so the pipeline never dead-ends)
+KEYLESS_LLM_FALLBACK = True
+GROQ_MODEL           = "llama-3.3-70b-versatile"
+OPENROUTER_MODEL     = "meta-llama/llama-3.3-70b-instruct:free"
+
+# Image sources tried after Pexels, in order:
+#   pixabay (key) · nasa (public domain, space topics) · openverse (CC) · pollinations (AI)
+IMAGE_SOURCES = ["pixabay", "nasa", "openverse", "pollinations"]
+
+# Trend Radar — Google Trends region and arXiv fields to watch
+TRENDS_GEO       = "US"
+ARXIV_CATEGORIES = ["astro-ph.CO", "gr-qc", "quant-ph", "cs.AI", "q-bio.NC"]
+
+# ─────────────────────────────────────────
+#  Your Channel Identity
+#  The more specific you are, the better the AI's topic suggestions.
+# ─────────────────────────────────────────
+CHANNEL_DESCRIPTION = """
+A toddler learning and early education channel in the style of top kids channels.
+We focus heavily on nursery rhymes, counting, colors, and positive social habits like sharing and good manners.
+Every short should be engaging, colorful, and fun for toddlers while meeting YouTube Kids compliance (COPPA).
+Target audience: toddlers and parents looking for safe, educational entertainment.
+""".strip()
+
+# On-video branding: the "▶ CHANNEL NAME" tag in the hook and on Shorts,
+# plus the channel line on thumbnails. Leave BRAND_TEXT empty to use CHANNEL_NAME.
+SHOW_CHANNEL_BRAND = True
+BRAND_TEXT         = ""
+
+# Default thumbnail style: "impact" | "cinematic" | "split" | "studio"
+# (you can switch per video on the Review page)
+THUMB_STYLE        = "impact"
+
+# Adds "Made with YAAS by Raunak Patil · https://raunakpatil.com" to descriptions
+CREDIT_YAAS        = True
+
+
+def brand_text() -> str:
+    """The on-video brand label, or "" when branding is switched off."""
+    if not SHOW_CHANNEL_BRAND:
+        return ""
+    return (BRAND_TEXT or CHANNEL_NAME or "").strip()
+
+# ─────────────────────────────────────────
+#  Voice (Edge TTS — free, no API key)
+#  Voices confirmed to emit word-level timing (needed for caption sync):
+#    en-GB-RyanNeural     — British, deep, cinematic
+#    en-US-AndrewNeural   — US, warm, authoritative  ← default
+#    en-US-BrianNeural    — US, calm, documentary
+#    en-US-GuyNeural      — US, clear, neutral
+# ─────────────────────────────────────────
+VOICE_ID    = "en-US-AndrewNeural"
+VOICE_RATE  = "-5%"     # slow down slightly for narration feel
+VOICE_PITCH = "-3Hz"    # slightly deeper = more cinematic
+
+# ─────────────────────────────────────────
+#  AI Model
+#  Starting model for the fallback chain — the system auto-switches
+#  through all models below if quota or errors are hit.
+#  Change this in the GUI under Settings → AI Model (saved to settings.json).
+#  Options (free tier):
+#    gemini-2.5-flash        — highest quality   (500 req/day)
+#    gemma-4-31b-it          — Gemma 4 31B       (500 req/day)
+#    gemini-2.0-flash        — recommended       (1500 req/day)  ← default
+#    gemini-2.0-flash-lite   — fastest           (1500 req/day)
+#    gemini-1.5-flash-001    — reliable fallback (1500 req/day)
+# ─────────────────────────────────────────
+GEMINI_MODEL = "gemini-2.5-flash"
+
+# ─────────────────────────────────────────
+#  Video Dimensions
+# ─────────────────────────────────────────
+VIDEO_WIDTH  = 1920
+VIDEO_HEIGHT = 1080
+VIDEO_FPS    = 24
+
+# YouTube Shorts dimensions (9:16 vertical)
+SHORTS_WIDTH  = 1080
+SHORTS_HEIGHT = 1920
+SHORTS_FPS    = 30
+
+# ─── Visual Style ───────────────────────
+# Ken Burns effect: how much to zoom/pan each image
+KB_ZOOM_START = 1.00    # starting scale (1.0 = no zoom)
+KB_ZOOM_END   = 1.10    # ending scale   (1.1 = 10% zoom in)
+
+# Image crossfade duration (seconds)
+# 0.0 = instant cut  |  0.5 = snappy  |  0.7 = smooth  |  1.2 = dreamy
+CROSSFADE_DURATION = 0.7
+
+# Normal video B-roll cycling
+BROLL_INTERVAL  = 10.0   # seconds each image stays on screen
+BROLL_XFADE_DUR =  1.2   # crossfade duration (must be < BROLL_INTERVAL)
+
+# Render quality preset (ffmpeg libx264)
+# "ultrafast" = fastest/largest  |  "veryfast" = recommended  |  "medium" = best quality
+RENDER_PRESET = "ultrafast"
+
+# Overlay opacity: lower = more image visible but text harder to read (0–1)
+OVERLAY_OPACITY = 0.62
+
+# Colour palette — customise to match your brand
+COLORS = {
+    "background": (10,  10,  20),
+    "overlay":    (0,   0,   0),
+    "primary":    (99,  102, 241),   # indigo
+    "accent":     (167, 139, 250),   # purple
+    "highlight":  (251, 191,  36),   # amber
+    "white":      (255, 255, 255),
+    "light":      (199, 210, 254),   # indigo-200
+    "success":    (52,  211, 153),
+    "red":        (239,  68,  68),
+}
+
+# Fonts — add your own .ttf paths for best results; system falls back gracefully
+FONT_PATHS = {
+    "bold":    [
+        "C:/Windows/Fonts/Impact.ttf",
+        "C:/Windows/Fonts/arialbd.ttf",
+        "/System/Library/Fonts/Supplemental/Impact.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    ],
+    "regular": [
+        "C:/Windows/Fonts/arial.ttf",
+        "C:/Windows/Fonts/segoeui.ttf",
+        "/System/Library/Fonts/Helvetica.ttc",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    ],
+    "light":   [
+        "C:/Windows/Fonts/segoeuil.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    ],
+}
+
+# ─────────────────────────────────────────
+#  YouTube Upload
+# ─────────────────────────────────────────
+YOUTUBE_CLIENT_SECRET = "client_secret.json"   # OAuth credentials file (see SETUP.md)
+YOUTUBE_SCOPES        = ["https://www.googleapis.com/auth/youtube.upload"]
+VIDEO_CATEGORY_ID     = "1"        # 1 = Film & Animation / Education (Kids content)
+VIDEO_PRIVACY         = "public"   # "public" | "unlisted" | "private"
+
+# ─────────────────────────────────────────
+#  Background Music
+#  Drop MP3/WAV files into the  music library/  folder.
+#  Tracks are shuffled and looped automatically to match video length.
+# ─────────────────────────────────────────
+MUSIC_ENABLED     = True
+MUSIC_VOLUME      = 0.12          # 0.0–1.0  (0.12 = subtle underscore)
+MUSIC_LIBRARY_DIR = os.path.join(os.path.dirname(__file__), "music library")
+
+# ─────────────────────────────────────────
+#  Paths  (do not change unless you know what you're doing)
+# ─────────────────────────────────────────
+OUTPUT_DIR   = "output"
+IMAGES_DIR   = "output/images"
+
+
+# ─────────────────────────────────────────
+#  Your saved settings  (settings.json — keep this block at the end)
+# ─────────────────────────────────────────
+# Settings the GUI may save. Secrets are never stored here; they go to .env.
+USER_SETTINGS = (
+    "CHANNEL_NAME", "CHANNEL_DESCRIPTION", "SHOW_CHANNEL_BRAND", "BRAND_TEXT",
+    "THUMB_STYLE", "CREDIT_YAAS",
+    "VOICE_ID", "VOICE_RATE", "VOICE_PITCH",
+    "GEMINI_MODEL", "GROQ_MODEL", "OPENROUTER_MODEL",
+    "FACT_GROUNDING", "KEYLESS_LLM_FALLBACK", "IMAGE_SOURCES", "TRENDS_GEO",
+    "MUSIC_ENABLED", "MUSIC_VOLUME",
+    "OVERLAY_OPACITY", "KB_ZOOM_START", "KB_ZOOM_END",
+    "BROLL_INTERVAL", "BROLL_XFADE_DUR", "RENDER_PRESET", "VIDEO_PRIVACY",
+    "VIDEOS_PER_DAY", "MADE_FOR_KIDS",
+)
+
+# The defaults above, before settings.json is applied
+DEFAULTS = {k: copy.deepcopy(globals()[k]) for k in USER_SETTINGS}
+
+
+def _valid_setting(key: str, value) -> bool:
+    """A saved value must be a known setting with the same type as its default."""
+    if key not in DEFAULTS:
+        return False
+    default = DEFAULTS[key]
+    if isinstance(default, bool):
+        return isinstance(value, bool)
+    if isinstance(default, float):
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+    if isinstance(default, int):
+        return isinstance(value, int) and not isinstance(value, bool)
+    if isinstance(default, str):
+        return isinstance(value, str)
+    if isinstance(default, list):
+        return isinstance(value, list) and all(isinstance(v, str) for v in value)
+    return False
+
+
+def load_settings(path: str | None = None) -> dict:
+    """Saved settings, skipping unknown keys and wrong types. Missing file → {}."""
+    path = path or SETTINGS_PATH
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        return {}
+    except (OSError, ValueError) as e:
+        print(f"   ⚠ Ignoring {os.path.basename(path)}: {e}")
+        return {}
+    if not isinstance(data, dict):
+        print(f"   ⚠ Ignoring {os.path.basename(path)}: expected a JSON object")
+        return {}
+    good = {k: v for k, v in data.items() if _valid_setting(k, v)}
+    for k in data.keys() - good.keys():
+        print(f"   ⚠ Ignoring unknown or invalid setting in {os.path.basename(path)}: {k}")
+    return good
+
+
+def save_settings(values: dict, path: str | None = None) -> None:
+    """
+    Merge values into settings.json. Only values that differ from the defaults
+    are kept, so a later change to a default in this file still reaches you.
+    Written to a temp file and renamed, so a crash never leaves half a file.
+    """
+    bad = [k for k, v in values.items() if not _valid_setting(k, v)]
+    if bad:
+        raise ValueError("Not a valid setting: " + ", ".join(sorted(bad)))
+    path = path or SETTINGS_PATH
+    merged = {**load_settings(path), **values}
+    merged = {k: v for k, v in merged.items() if v != DEFAULTS[k]}
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(merged, f, indent=2, sort_keys=True, ensure_ascii=False)
+        f.write("\n")
+    os.replace(tmp, path)
+
+
+def import_legacy_config(path: str) -> dict:
+    """
+    Read the settings an older YAAS saved into its config.py, without running it
+    (only literal values are parsed). Returns the values that differ from today's
+    defaults, ready for save_settings().
+    """
+    with open(path, encoding="utf-8") as f:
+        tree = ast.parse(f.read(), filename=path)
+    found = {}
+    for node in tree.body:
+        if (isinstance(node, ast.Assign) and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and node.targets[0].id in DEFAULTS):
+            try:
+                value = ast.literal_eval(node.value)
+            except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
+                continue                  # not a plain literal (e.g. an expression)
+            key = node.targets[0].id
+            if key == "CHANNEL_DESCRIPTION" and isinstance(value, str):
+                value = value.strip()     # older versions kept surrounding newlines
+            if _valid_setting(key, value) and value != DEFAULTS[key]:
+                found[key] = value
+    return found
+
+
+globals().update(load_settings())

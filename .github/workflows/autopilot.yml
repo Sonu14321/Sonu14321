@@ -1,0 +1,36 @@
+name: KidCraft-AI Shorts Autopilot
+
+on:
+  schedule:
+    # Triggers 3 times a day: Morning (8 AM), Afternoon (1 PM), Evening (6 PM)
+    - cron: '0 8,13,18 * * *'
+  workflow_dispatch:
+
+jobs:
+  run-shorts-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install System Dependencies (FFmpeg for MoviePy)
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --prefer-binary -r requirements.txt
+
+      - name: Inject Environment Secrets
+        run: |
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> .env
+          echo '${{ secrets.CLIENT_SECRET_JSON }}' > client_secret.json
+
+      - name: Run 3x Daily Shorts Agent
+        run: python -m agents.auto_agent

@@ -1,0 +1,218 @@
+# 🛠️ Setup Guide
+
+Complete step-by-step instructions to get YAAS (youtube-agentic-ai-studio) running from scratch.
+
+> **Time required:** ~10 minutes
+
+---
+
+## Prerequisites
+
+- Python **3.10, 3.11 or 3.12** — [python.org/downloads](https://www.python.org/downloads/)
+  (3.13+ is not supported yet: the pinned `numpy<2` has no prebuilt wheels for it, so `pip install` tries to compile numpy and usually fails)
+- `ffmpeg` installed and on your PATH (see [Step 1b](#1b-install-ffmpeg))
+- A Google account (for Gemini + YouTube)
+- A Pexels account (free image API)
+
+---
+
+## Step 1 — Clone and install
+
+### 1a. Clone the repository
+
+```bash
+git clone https://github.com/yourusername/youtube-ai-agent.git
+cd youtube-ai-agent
+```
+
+### 1b. Install ffmpeg
+
+ffmpeg is required by MoviePy for video rendering.
+
+| OS | Command |
+|---|---|
+| **Windows** | Download from [ffmpeg.org](https://ffmpeg.org/download.html) → extract → add `bin/` folder to PATH |
+| **Mac** | `brew install ffmpeg` |
+| **Ubuntu/Debian** | `sudo apt install ffmpeg` |
+
+Verify: `ffmpeg -version` should print version info.
+
+### 1c. Install Python dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+> ⚠️ **Do not upgrade** `moviepy` or `numpy` — they are pinned intentionally. See [FAQ in README](README.md#-faq).
+
+---
+
+## Step 2 — Get your API keys
+
+### 2a. Google Gemini API Key (required — free)
+
+1. Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+2. Sign in with your Google account
+3. Click **Create API Key**
+4. Copy the key
+
+### 2b. Pexels API Key (required — free)
+
+1. Go to [pexels.com/api](https://www.pexels.com/api/)
+2. Create a free account and click **Your API Key**
+3. Copy the key
+
+---
+
+## Step 3 — Add your keys
+
+All keys are optional. YAAS runs without any, but a Gemini key makes scripts much better.
+
+### Option A — In the app (easiest)
+
+Run `python gui.py`, click **Settings** (top right), paste your keys, and press **Save**.
+They're written to a local `.env` file that git ignores.
+
+### Option B — Edit `.env` yourself
+
+```bash
+cp .env.example .env
+# open .env and fill in the keys you have
+```
+
+Real environment variables (`export GEMINI_API_KEY=...`) also work and take priority over `.env`.
+
+> Never put keys in `config.py`. It's tracked by git, so they'd end up in your commits.
+
+---
+
+## Step 4 — Set up YouTube upload (optional)
+
+Skip this step if you just want to generate videos locally without uploading.
+
+### 4a. Create a Google Cloud project
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com)
+2. Click **Select a project → New Project**
+3. Name it (e.g. "YAAS") and click **Create**
+
+### 4b. Enable the YouTube Data API
+
+1. In your new project, go to **APIs & Services → Library**
+2. Search for **YouTube Data API v3**
+3. Click **Enable**
+
+### 4c. Create OAuth credentials
+
+1. Go to **APIs & Services → Credentials**
+2. Click **Create Credentials → OAuth client ID**
+3. If prompted, configure the consent screen first:
+   - User Type: **External**
+   - Fill in app name, support email, and developer email
+   - Scopes: click **Add or remove scopes** → search "youtube" → select `youtube.upload`
+   - Test users: add your own Gmail address
+4. Back in Credentials → **Create Credentials → OAuth client ID**
+   - Application type: **Desktop app**
+   - Name: anything (e.g. "YT Agent Desktop")
+5. Click **Download JSON**
+6. Rename the downloaded file to `client_secret.json`
+7. Put it in the root of the project, next to `client_secret.example.json`
+
+> `client_secret.json` is git-ignored, so your real credentials are never committed. Don't paste them into `client_secret.example.json`, which is tracked.
+
+### 4d. First-time authentication
+
+On your first run, a browser window will open asking you to sign in with Google and grant permission. This only happens once — the token is saved locally as `youtube_token.json` (git-ignored). If you used an older version, you'll sign in once more and can delete the old `youtube_token.pickle`.
+
+> If you see a "Google hasn't verified this app" warning, click **Advanced → Go to (app name) (unsafe)**. This is expected for personal OAuth apps in testing mode.
+
+---
+
+## Step 5 — Customise your channel
+
+In the app, open **Settings → Your channel** and set:
+
+- **Channel name**, which is shown in your videos and thumbnails (switch it off or use custom text with *Show channel name in videos*)
+- **What your channel is about**: the more specific, the better the AI's topics and scripts.
+  Example: *"Educational science channel for curious adults, style of Veritasium."*
+
+Everything you change in Settings is saved to `settings.json` in the project folder (git-ignored, next to `.env`). It only holds what differs from the defaults in `config.py`, and it wins over them. Delete it to go back to the defaults.
+
+---
+
+## Step 6 — Launch
+
+```bash
+python gui.py
+```
+
+Opens at **http://localhost:7070**. Type a topic on Home and press **Make video**.
+
+---
+
+## Step 7 — Add background music (optional)
+
+Drop any `.mp3` or `.wav` files into the `music library/` folder.  
+The pipeline will automatically shuffle and loop them to match the video duration.
+
+The repo includes a few dark cinematic tracks to get you started. Replace or add to them freely.
+
+---
+
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `No module named 'moviepy'` | Run `pip install -r requirements.txt` again |
+| `ffmpeg not found` | Install ffmpeg and ensure it's on your PATH |
+| `RESOURCE_EXHAUSTED` / 429 | Gemini quota hit — wait until midnight Pacific or switch starting model |
+| YouTube sign-in / token error | Delete `youtube_token.json` and upload again to re-authenticate |
+| Tiny/ugly video text | Install DejaVu fonts: `sudo apt install fonts-dejavu` (Linux) |
+| Port 7070 already in use | Set the `STUDIO_PORT` environment variable, e.g. `STUDIO_PORT=7071 python gui.py` |
+| `client_secret.json` error | Download your OAuth JSON from Google Cloud and save it as `client_secret.json` in the project root (step 4c) |
+| Captions out of sync | Switch to a different voice in **Settings** (the voices with word timing are listed in `config.py`) |
+| A setting won't stick | Values in `settings.json` win over `config.py`. Change it in **Settings**, or remove it from `settings.json` |
+
+---
+
+## Upgrading from an older version
+
+Older versions saved the Settings page into `config.py` itself. If you changed settings there, `git pull` will refuse to overwrite your edited `config.py`. Move your settings across once:
+
+```bash
+git stash
+```
+
+```bash
+git pull
+```
+
+```bash
+git show "stash@{0}:config.py" > old_config.py
+```
+
+```bash
+python gui.py --import-settings old_config.py
+```
+
+The import only reads plain values from the file, it never runs it. Check **Settings**, then delete `old_config.py` and drop the stash with `git stash drop`.
+
+---
+
+## Optional: Run as a background service
+
+To keep the studio running continuously (e.g. on a home server):
+
+```bash
+# Using nohup (Linux/Mac)
+nohup python gui.py > studio.log 2>&1 &
+
+# Using screen
+screen -S yt-studio
+python gui.py
+# Detach: Ctrl+A then D
+```
+
+---
+
+If you get stuck, [open an issue](https://github.com/yourusername/youtube-ai-agent/issues) with your error message and OS.
